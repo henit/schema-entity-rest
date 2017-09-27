@@ -1,0 +1,19 @@
+{
+  "name": "schema-entity-rest",
+  "version": "0.0.1",
+  "description": "Functional helpers for making RESTful API endpoints for data entities based on JSON Schema",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/henit/schema-entity-rest.git"
+  },
+  "author": "Henrik Haugberg <henrik.haugberg@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/henit/schema-entity-rest/issues"
+  },
+  "homepage": "https://github.com/henit/schema-entity-rest#readme"
+}
