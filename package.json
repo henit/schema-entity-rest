@@ -2,9 +2,26 @@
   "name": "schema-entity-rest",
   "version": "0.0.1",
   "description": "Functional helpers for making RESTful API endpoints for data entities based on JSON Schema",
-  "main": "index.js",
+  "main": "lib/index.js",
+  "files": [
+    "src",
+    "lib"
+  ],
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "npm run test:ava && npm run test:eslint",
+    "test:ava": "NODE_PATH=. ava \"src/**/_tests/*.test.js\" --timeout=10s",
+    "test:ava:watch": "NODE_PATH=. ava \"src/**/_tests/*.test.js\" --watch --timeout=10s",
+    "test:eslint": "eslint . --ext .js,.jsx",
+    "compile": "babel src --out-dir lib",
+    "clean": "rimraf lib",
+    "prepublish": "npm run compile",
+    "postpublish": "npm run clean"
+  },
+  "ava": {
+    "require": [
+      "babel-register"
+    ],
+    "babel": "inherit"
   },
   "repository": {
     "type": "git",
@@ -15,5 +32,20 @@
   "bugs": {
     "url": "https://github.com/henit/schema-entity-rest/issues"
   },
-  "homepage": "https://github.com/henit/schema-entity-rest#readme"
+  "homepage": "https://github.com/henit/schema-entity-rest#readme",
+  "devDependencies": {
+    "ava": "^0.22.0",
+    "babel-cli": "^6.26.0",
+    "babel-plugin-transform-object-rest-spread": "^6.26.0",
+    "babel-preset-env": "^1.6.0",
+    "babel-register": "^6.26.0",
+    "eslint": "^4.8.0",
+    "rimraf": "^2.6.2"
+  },
+  "dependencies": {
+    "core-js": "^2.5.1",
+    "fast-json-patch": "^2.0.5",
+    "lodash": "^4.17.4",
+    "sert": "^0.3.1"
+  }
 }
