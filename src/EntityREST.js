@@ -4,25 +4,6 @@ import Sert from 'sert-schema';
 
 let EntityREST = {};
 
-/*
-- authenticate (request, respond)
-    - respond - stop process
-    - throw error - respond 401, stop process
-- validate (request, respond)
-    - respond - stop proess
-    - throw error - respond 400, stop process
-- endpoint function (request, respond)
-
-- query (request, Entity)
-- set (request, Entity)
-
-- shouldCreate
-- ‎prepareCreate (add default props)
-- ‎didCreate
-
-app.get('/path/', Endpoints.express(EntityEndpoints.getOne, { query }, Memo));
-*/
-
 /**
  * Make express middleware for an endpoint
  * @param {function} endpointFunction Endpoint function (getting standard endpoint params)
@@ -32,8 +13,6 @@ app.get('/path/', Endpoints.express(EntityEndpoints.getOne, { query }, Memo));
  */
 EntityREST.express = (endpointFunction, spec, ...args) => {
     return async (req, res, next) => {
-        console.log('EXPRESS MIDDLEWARE');
-
         const request = {
             urlParams: req.params || {},
             query: req.query || {},
@@ -62,7 +41,7 @@ EntityREST.express = (endpointFunction, spec, ...args) => {
                 spec.validate(request, ...args);
             }
 
-            await endpointFunction(request, respond, ...args);
+            await endpointFunction(request, respond, spec, ...args);
 
             next();
 
@@ -72,83 +51,23 @@ EntityREST.express = (endpointFunction, spec, ...args) => {
     };
 };
 
-/**
- * Make express middleware for an endpoint function
- * @param {function} endpoint Endpoint function
- * @return {function} Express middleware for endpoint
- */
-/*MEMEndpoints.express = (endpoint, ...args) => {
-    return async (req, res, next) => {
-        console.log('EXPRESS MIDDLEWARE');
-
-        const request = {
-            urlParams: req.params || {},
-            query: req.query || {},
-            body: req.body || {},
-            user: req.user
-        };
-        const respond = (status = 200, data = {}) => {
-            if ((typeof data) === 'object') {
-                res
-                    .status(status)
-                    .set('Content-Type', 'application/hal+json')
-                    .json(data);
-            } else {
-                res
-                    .status(status)
-                    .send(data || '');
-            }
-            next();
-        };
-
-        try {
-            await endpoint(request, respond, ...args);
-        } catch (e) {
-            next(e);
-        }
-    };
-};*/
-
-/**
- * Run entity endpoint function (argument wrapper)
- * @param {object} router The express app/router
- * @param {string} method HTTTP method for endpoint
- * @param {string} path Relative API path
- * @param {object} TypeEntity Function container for entity type
- * @param {object} spec Custom specifications for this endpoint
- * @param {function} func Function with endpoint logic
- */
-/*SUREntityEndpoints.express = (router, method, path, TypeEntity, access, spec, func) =>
-    Endpoints.express(router, method, path, access, async request => {
-        if (spec && spec.validate) {
-            spec.validate(request);
-        }
-        await func(request, TypeEntity, spec);
-    });*/
-
-/**
- * Export entity data (object or collection) to HAL structure
- * @param {object} TypeEntity Function container for the entity type
- * @param {object|array} data Entity/entities
- * @return {object} HAL data
- */
-/*SUREntityEndpoints.exportHAL = (TypeEntity, data) => {
+EntityREST.exportHAL = (url, Entity, data) => {
     if (Array.isArray(data)) {
         return {
             _links: {
-                self: { href: `${config.server.publicUrl}/${TypeEntity.pluralName}` }
+                self: { href: `${url}${url.slice(-1) !== '/' ? '/' : ''}${Entity.pluralName || 'data'}/` }
             },
             count: data.length,
             _embedded: {
-                [TypeEntity.pluralName]: data.map(TypeEntity.exportHAL || _.identity)
+                // [Entity.pluralName]: data.map(Entity.exportHAL || _.identity)
+                [Entity.pluralName || 'data']: data
             }
         };
     } else {
-        return (TypeEntity.exportHAL || _.identity)(data);
+        // return (Entity.exportHAL || _.identity)(data);
+        return data;
     }
-};*/
-
-
+};
 
 /**
  * Get db query conditions based on request query
@@ -198,22 +117,18 @@ function filterConditions(query) {
     }, {});
 }
 
-
-
-
-
 /**
  * Get one entity
  * @param {object} request Request data
  * @param {function} respond Respond function, takes arguments (status, data)
- * @param {object} Entity Entity function container
  * @param {object} spec Custom endpoint specifications
+ * @param {object} Entity Entity function container
  */
-EntityREST.getOne = async (request, respond, Entity, spec = {}) => {
+EntityREST.getOne = async (request, respond, spec = {}, Entity) => {
     Sert.string(request.urlParams.entityId, { status: 400, message: 'Entity id is required.' });
 
     const entity = await Entity.findById(request.urlParams.entityId);
-    const exportEntity = await Entity.exportOne(entity);
+    const exportEntity = await (Entity.exportOne || _.identity)(entity);
 
     respond(200, exportEntity);
 };
@@ -222,15 +137,15 @@ EntityREST.getOne = async (request, respond, Entity, spec = {}) => {
  * Get many entities
  * @param {object} request Request data
  * @param {function} respond Respond function, takes arguments (status, data)
- * @param {object} Entity Entity function container
  * @param {object} spec Custom endpoint specifications
+ * @param {object} Entity Entity function container
  */
-EntityREST.getMany = async (request, respond, Entity, spec = {}) => {
+EntityREST.getMany = async (request, respond, spec = {}, Entity) => {
     // Limit
     const limit = Math.min(parseInt(request.query.limit || 25), 500);
 
     // Sort
-    const sortMatch = request.query.sort && (request.query.sort || '').match(/^(\-?)(.*)$/);
+    const sortMatch = request.query.sort && (request.query.sort || '').match(/^(-?)(.*)$/);
     const sort = sortMatch ? { [sortMatch[2]]: (sortMatch[1] === '-' ? -1 : 1) } : { _id: 1 };
 
     // Skip
@@ -241,7 +156,19 @@ EntityREST.getMany = async (request, respond, Entity, spec = {}) => {
         ...filterConditions(request.query),
         ...(spec.query || _.stubObject)(request)
     }, { limit, skip, sort });
-    const exportEntities = await Entity.exportMany(entities);
+
+    // const exportEntities = await Entity.exportMany(entities);
+
+    // const exportEntities = await Promise.all(
+    //     entities.map(async entity => await (Entity.exportOne || _.identity)(entity))
+    // );
+
+    const exportEntities = Entity.exportMany ?
+        await Entity.exportMany(entities)
+        :
+        await Promise.all(
+            entities.map(async entity => await (Entity.exportOne || _.identity)(entity))
+        );
 
     respond(200, exportEntities);
 };
@@ -250,10 +177,10 @@ EntityREST.getMany = async (request, respond, Entity, spec = {}) => {
  * Post one entity
  * @param {object} request Request data
  * @param {function} respond Respond function, takes arguments (status, data)
- * @param {object} Entity Entity function container
  * @param {object} spec Custom endpoint specifications
+ * @param {object} Entity Entity function container
  */
-EntityREST.postOne = async (request, respond, Entity, spec = {}) => {
+EntityREST.postOne = async (request, respond, spec = {}, Entity) => {
     const setProps = await (spec.set || _.stubObject)(request);
     const createProps = _.omitBy(_.isUndefined,
         (Entity.prepareCreate || _.identity)({
@@ -264,7 +191,10 @@ EntityREST.postOne = async (request, respond, Entity, spec = {}) => {
     );
 
     // Entity.assertValidPartial(createProps, { status: 400, message: 'Invalid entity properties.' });
-    Entity.assertValid(createProps, { status: 400, message: 'Invalid entity properties.' });
+    Entity.assertValid({
+        id: '123456789012345678901234', // Fake post-create id
+        ...createProps
+    }, { status: 400, message: 'Invalid entity properties.' });
 
     Entity.shouldCreate && await Entity.shouldCreate(createProps);
 
@@ -280,10 +210,10 @@ EntityREST.postOne = async (request, respond, Entity, spec = {}) => {
  * Put one entity
  * @param {object} request Request data
  * @param {function} respond Respond function, takes arguments (status, data)
- * @param {object} Entity Entity function container
  * @param {object} spec Custom endpoint specifications
+ * @param {object} Entity Entity function container
  */
-EntityREST.putOne = async (request, respond, Entity, spec = {}) => {
+EntityREST.putOne = async (request, respond, spec = {}, Entity) => {
     // Validate input
     // Entity.assertValid(request.body, {
     //     message: 'Invalid entity properties',
@@ -341,10 +271,10 @@ EntityREST.putOne = async (request, respond, Entity, spec = {}) => {
  * Patch one entity
  * @param {object} request Request data
  * @param {function} respond Respond function, takes arguments (status, data)
- * @param {object} Entity Entity function container
  * @param {object} spec Custom endpoint specifications
+ * @param {object} Entity Entity function container
  */
-EntityREST.patchOne = async (request, respond, Entity, spec = {}) => {
+EntityREST.patchOne = async (request, respond, spec = {}, Entity) => {
     const existingEntity = await Entity.findById(request.urlParams.entityId);
     Sert.object(existingEntity, { status: 404, message: 'Resource not found.' });
 
@@ -411,10 +341,10 @@ EntityREST.patchOne = async (request, respond, Entity, spec = {}) => {
  * Patch many entities
  * @param {object} request Request data
  * @param {function} respond Respond function, takes arguments (status, data)
- * @param {object} Entity Entity function container
  * @param {object} spec Custom endpoint specification
+ * @param {object} Entity Entity function container
  */
-EntityREST.patchMany = async (request, respond, Entity, spec = {}) => {
+EntityREST.patchMany = async (request, respond, spec = {}, Entity) => {
     const existingEntities = await Entity.find({
         // ...EntityEndpoints.filterConditions(Entity, request.query),
         ...filterConditions(request.query),
@@ -453,10 +383,10 @@ EntityREST.patchMany = async (request, respond, Entity, spec = {}) => {
  * Delete one entity
  * @param {object} request Request data
  * @param {function} respond Respond function, takes arguments (status, data)
- * @param {object} Entity Entity function container
  * @param {object} spec Custom endpoint specification
+ * @param {object} Entity Entity function container
  */
-EntityREST.deleteOne = async (request, respond, Entity, spec = {}) => {
+EntityREST.deleteOne = async (request, respond, spec = {}, Entity) => {
     const entity = await Entity.findById(request.urlParams.entityId);
     Sert.object(entity, { status: 404, message: 'Resource not found.' });
 
