@@ -11,7 +11,7 @@ let EntityREST = {};
  * @param {array} args Additional arguments for endpoint function
  * @return {function} Express middleware
  */
-EntityREST.express = (endpointFunction, spec, ...args) => {
+EntityREST.express = (endpointFunction, spec = {}, ...args) => {
     return async (req, res, next) => {
         const request = {
             urlParams: req.params || {},
@@ -33,12 +33,38 @@ EntityREST.express = (endpointFunction, spec, ...args) => {
         };
 
         try {
+            // Authenticate
             if (spec.authenticate) {
-                spec.authenticate(request, ...args);
+                try {
+                    spec.authenticate(request, ...args);
+                } catch (e) {
+                    if (e.status) {
+                        throw e;
+                    }
+
+                    // When authentication failed, respond with 401
+                    const err = new Error(e.message);
+                    err.details = e.details;
+                    err.status = 401;
+                    throw err;
+                }
             }
 
+            // Validation of request
             if (spec.validate) {
-                spec.validate(request, ...args);
+                try {
+                    spec.validate(request, ...args);
+                } catch (e) {
+                    if (e.status) {
+                        throw e;
+                    }
+
+                    // If validation failed, respond with 400
+                    const err = new Error(e.message);
+                    err.details = e.details;
+                    err.status = 400;
+                    throw err;
+                }
             }
 
             await endpointFunction(request, respond, spec, ...args);
@@ -65,7 +91,12 @@ EntityREST.exportHAL = (url, Entity, data) => {
         };
     } else {
         // return (Entity.exportHAL || _.identity)(data);
-        return data;
+        return {
+            ...data,
+            _links: {
+                self: { href: `${url}/${Entity.pluralName}/${data.id}` }
+            }
+        };
     }
 };
 
@@ -128,6 +159,7 @@ EntityREST.getOne = async (request, respond, spec = {}, Entity) => {
     Sert.string(request.urlParams.entityId, { status: 400, message: 'Entity id is required.' });
 
     const entity = await Entity.findById(request.urlParams.entityId);
+
     const exportEntity = await (Entity.exportOne || _.identity)(entity);
 
     respond(200, exportEntity);
@@ -152,7 +184,6 @@ EntityREST.getMany = async (request, respond, spec = {}, Entity) => {
     const skip = parseInt(request.query.offset) || 0;
 
     const entities = await Entity.find({
-        // ...EntityEndpoints.filterConditions(Entity, request.query),
         ...filterConditions(request.query),
         ...(spec.query || _.stubObject)(request)
     }, { limit, skip, sort });
@@ -346,7 +377,6 @@ EntityREST.patchOne = async (request, respond, spec = {}, Entity) => {
  */
 EntityREST.patchMany = async (request, respond, spec = {}, Entity) => {
     const existingEntities = await Entity.find({
-        // ...EntityEndpoints.filterConditions(Entity, request.query),
         ...filterConditions(request.query),
         ...(spec.query || _.stubObject)(request)
     });
