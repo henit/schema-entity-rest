@@ -77,7 +77,7 @@ EntityREST.express = (endpointFunction, spec = {}, ...args) => {
     };
 };
 
-EntityREST.exportHAL = (url, Entity, data) => {
+EntityREST.exportHAL = _.curry((url, Entity, data) => {
     if (Array.isArray(data)) {
         return {
             _links: {
@@ -98,7 +98,7 @@ EntityREST.exportHAL = (url, Entity, data) => {
             }
         };
     }
-};
+});
 
 /**
  * Get db query conditions based on request query
