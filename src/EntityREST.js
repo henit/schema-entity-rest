@@ -217,7 +217,8 @@ EntityREST.postOne = async (request, respond, spec = {}, Entity) => {
         (Entity.prepareCreate || _.identity)({
             ...request.body,
             ...setProps,
-            _embedded: undefined
+            _embedded: undefined,
+            _links: undefined
         })
     );
 
@@ -267,7 +268,8 @@ EntityREST.putOne = async (request, respond, spec = {}, Entity) => {
             ...Entity.resetReadOnly(request.body, existingEntity),
             ...setProps,
             id: request.urlParams.entityId,
-            _embedded: undefined
+            _embedded: undefined,
+            _links: undefined
         })
     );
 
@@ -328,7 +330,8 @@ EntityREST.patchOne = async (request, respond, spec = {}, Entity) => {
                 ...Entity.resetReadOnly(patchedEntity, existingEntity),
                 ...setProps,
                 id: request.urlParams.entityId,
-                _embedded: undefined
+                _embedded: undefined,
+                _links: undefined
             })
         );
 
@@ -351,7 +354,8 @@ EntityREST.patchOne = async (request, respond, spec = {}, Entity) => {
                 ...Entity.resetReadOnly(request.body, existingEntity),
                 ...setProps,
                 id: request.urlParams.entityId,
-                _embedded: undefined
+                _embedded: undefined,
+                _links: undefined
             })
         );
 
@@ -393,7 +397,8 @@ EntityREST.patchMany = async (request, respond, spec = {}, Entity) => {
                 ...Entity.resetReadOnly(request.body, existingEntity),
                 ...setProps,
                 id: existingEntity.id,
-                _embedded: undefined
+                _embedded: undefined,
+                _links: undefined
             })
         );
 
