@@ -232,7 +232,7 @@ EntityREST.postOne = async (request, respond, spec = {}, Entity) => {
         ...createProps
     }, { status: 400, message: 'Invalid entity properties.' });
 
-    Entity.shouldCreate && await Entity.shouldCreate(createProps);
+    Entity.shouldCreate && await Entity.shouldCreate(createProps, request);
 
     const entity = await Entity.createOne(createProps);
     const exportEntity = await (Entity.exportOne || _.identity)(entity);
@@ -279,7 +279,7 @@ EntityREST.putOne = async (request, respond, spec = {}, Entity) => {
 
     Entity.assertValid(replaceProps, { status: 400, message: 'Invalid entity properties.' });
 
-    Entity.shouldUpdate && await Entity.shouldUpdate(replaceProps);
+    Entity.shouldUpdate && await Entity.shouldUpdate(replaceProps, request);
 
     const entity = await Entity.replaceOne(replaceProps);
     const exportEntity = await (Entity.exportOne || _.identity)(entity);
@@ -341,7 +341,7 @@ EntityREST.patchOne = async (request, respond, spec = {}, Entity) => {
 
         Entity.assertValid(updateProps, { status: 400, message: 'Invalid entity properties.' });
 
-        Entity.shouldUpdate && await Entity.shouldUpdate(updateProps);
+        Entity.shouldUpdate && await Entity.shouldUpdate(updateProps, request);
 
         const entity = await Entity.updateOne(updateProps);
         const exportEntity = await (Entity.exportOne || _.identity)(entity);
@@ -365,7 +365,7 @@ EntityREST.patchOne = async (request, respond, spec = {}, Entity) => {
 
         Entity.assertValid(updateProps, { status: 400, message: 'Invalid entity properties.' });
 
-        Entity.shouldUpdate && await Entity.shouldUpdate(updateProps);
+        Entity.shouldUpdate && await Entity.shouldUpdate(updateProps, request);
 
         const entity = await Entity.updateOne(updateProps);
         const exportEntity = await (Entity.exportOne || _.identity)(entity);
@@ -407,7 +407,7 @@ EntityREST.patchMany = async (request, respond, spec = {}, Entity) => {
         );
 
         Entity.assertValid(updateProps, { status: 400, message: 'Invalid entity properties.' });
-        Entity.shouldUpdate && await Entity.shouldUpdate(updateProps);
+        Entity.shouldUpdate && await Entity.shouldUpdate(updateProps, request);
 
         const entity = await Entity.updateOne(updateProps);
         return await (Entity.exportOne || _.identity)(entity);
@@ -429,7 +429,7 @@ EntityREST.deleteOne = async (request, respond, spec = {}, Entity) => {
     const entity = await Entity.findById(request.urlParams.entityId);
     Sert.object(entity, { status: 404, message: 'Resource not found.' });
 
-    Entity.shouldDelete && await Entity.shouldDelete(entity);
+    Entity.shouldDelete && await Entity.shouldDelete(entity, request);
 
     await Entity.deleteOne(entity);
 
