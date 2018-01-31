@@ -106,8 +106,13 @@ EntityREST.exportHAL = _.curry((url, Entity, data) => {
  * @return {object} Database query
  */
 function filterConditions(query) {
+    if (query.q) {
+        // Database query encoded in url query
+        return JSON.parse(query.q);
+    }
+
     return (Object.keys(query)).reduce((conditions, prop) => {
-        if (prop === 'limit' || prop === 'offset' || prop === 'sort') {
+        if (prop === 'limit' || prop === 'offset' || prop === 'sort' || prop === 'q') {
             return conditions;
         }
 
