@@ -107,7 +107,7 @@ EntityREST.exportHAL = _.curry((url, Entity, data) => {
  */
 function filterConditions(query) {
     return (Object.keys(query)).reduce((conditions, prop) => {
-        if (prop === 'limit' || prop === 'offset' || prop === 'offset') {
+        if (prop === 'limit' || prop === 'offset' || prop === 'sort') {
             return conditions;
         }
 
