@@ -266,7 +266,7 @@ EntityREST.putOne = async (request, respond, spec = {}, Entity) => {
 
     const setProps = await (spec.set || _.stubObject)(request);
     const replaceProps = _.omitBy(_.isUndefined,
-        (Entity.prepareCreate || _.identity)({
+        (Entity.prepareUpdate || _.identity)({
             // ...existingEntity,
             // ...updateProps,
             ...Entity.resetReadOnly(request.body, existingEntity),
