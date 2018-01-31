@@ -1,6 +1,6 @@
 {
   "name": "schema-entity-rest",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "description": "Functional helpers for making RESTful API endpoints for data entities based on JSON Schema",
   "main": "lib/index.js",
   "files": [
